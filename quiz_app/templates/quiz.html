@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Quiz</h1>
+<form id="article-form">
+    <label for="article">Paste your article text here:</label>
+    <textarea id="article" name="article" required></textarea>
+    <button type="submit">Generate Questions</button>
+</form>
+
+<div class="questions" id="questions"></div>
+
+<script>
+    document.getElementById('article-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const articleText = document.getElementById('article').value;
+        
+        fetch('/generate-questions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ article: articleText }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            const questionsContainer = document.getElementById('questions');
+            questionsContainer.innerHTML = '';
+
+            if (data.question) {
+                const questionElement = document.createElement('div');
+                questionElement.classList.add('question');
+                
+                let choices = data.choices.map((choice, i) => `
+                    <div>
+                        <input type="radio" id="q_option${i}" name="q" value="${choice.charAt(0)}">
+                        <label for="q_option${i}">${choice}</label>
+                    </div>
+                `).join('');
+
+                questionElement.innerHTML = `
+                    <b>${data.question}</b>
+                    <form class="quiz-form">
+                        ${choices}
+                        <button type="submit">Submit Answer</button>
+                    </form>
+                    <div class="feedback" id="feedback"></div>
+                `;
+                questionsContainer.appendChild(questionElement);
+
+                document.querySelector('.quiz-form').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const selectedAnswer = document.querySelector('input[name="q"]:checked');
+                    const feedbackElement = questionElement.querySelector('#feedback');
+
+                    if (!selectedAnswer) {
+                        feedbackElement.textContent = 'Please select an answer!';
+                        feedbackElement.style.color = 'orange';
+                        return;
+                    }
+
+                    const userAnswer = selectedAnswer.value;
+                    if (userAnswer === data.correct_answer) {
+                        feedbackElement.textContent = 'Correct!';
+                        feedbackElement.style.color = 'green';
+                    } else {
+                        feedbackElement.textContent = `Wrong! The correct answer is ${data.correct_answer}.`;
+                        feedbackElement.style.color = 'red';
+                    }
+                });
+            } else {
+                questionsContainer.textContent = 'No questions generated.';
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Flashcards</h1>
+<form id="article-form">
+    <label for="article">Paste your article text here:</label>
+    <textarea id="article" name="article" required></textarea>
+    <button type="submit">Generate Flashcards</button>
+</form>
+
+<div class="flashcards-container" id="flashcards-container"></div>
+
+<script>
+    document.getElementById('article-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const articleText = document.getElementById('article').value;
+        
+        fetch('/generate-flashcards', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ article: articleText }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            const flashcardsContainer = document.getElementById('flashcards-container');
+            flashcardsContainer.innerHTML = ''; // Clear any previous flashcards
+
+            if (data.question && data.answer) {
+                const flashcardElement = document.createElement('div');
+                flashcardElement.classList.add('flashcard');
+                flashcardElement.setAttribute('onclick', `flipCard(this)`);
+
+                flashcardElement.innerHTML = `
+                    <div class="front">${data.question}</div>
+                    <div class="back">${data.answer}</div>
+                `;
+                flashcardsContainer.appendChild(flashcardElement);
+            } else {
+                flashcardsContainer.textContent = 'No flashcards generated.';
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+
+    function flipCard(card) {
+        card.classList.toggle('flipped');
+    }
+</script>
+{% endblock %}
